@@ -1,4 +1,3 @@
-
 // server.js - Complete backend with Supabase
 require('dotenv').config();
 
@@ -12,7 +11,17 @@ const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
+
+// Environment variables validation
+const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'ADMIN_USERNAME', 'ADMIN_PASSWORD', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+    console.error('❌ Missing required environment variables:', missingEnvVars);
+    console.error('Please check your .env file or environment configuration');
+    process.exit(1);
+}
 
 const corsOptions = {
     origin: [
@@ -20,17 +29,31 @@ const corsOptions = {
         'https://amul-arwal.firebaseapp.com',
         'https://13.228.225.19',
         'https://54.254.162.138',
+        'http://localhost:3000',
+        'http://localhost:5000',
+        'http://127.0.0.1:5500'
     ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Supabase configuration
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+let supabase;
+
+try {
+    supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('✅ Supabase client initialized');
+} catch (error) {
+    console.error('❌ Failed to initialize Supabase client:', error);
+    process.exit(1);
+}
 
 // Environment variables
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
@@ -41,12 +64,10 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('📁 Created uploads directory');
 }
 
-// Middleware
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Serve static files
 app.use('/uploads', express.static('uploads'));
 
 // Multer configuration for file uploads
@@ -77,18 +98,36 @@ async function initializeDatabase() {
     try {
         console.log('🔄 Initializing database tables...');
         
+        // Test Supabase connection
+        const { data, error: connectionError } = await supabase
+            .from('users')
+            .select('count')
+            .limit(1);
+        
+        if (connectionError) {
+            console.error('❌ Supabase connection failed:', connectionError);
+            return;
+        }
+        
+        console.log('✅ Supabase connection successful');
+        
         // Check if admin user exists
-        const { data: existingAdmin } = await supabase
+        const { data: existingAdmin, error: fetchError } = await supabase
             .from('users')
             .select('*')
             .eq('username', ADMIN_USERNAME)
             .single();
 
+        if (fetchError && fetchError.code !== 'PGRST116') {
+            console.error('Error checking admin user:', fetchError);
+            return;
+        }
+
         if (!existingAdmin) {
             console.log('Creating admin user...');
             const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
             
-            const { error } = await supabase
+            const { data: newAdmin, error: insertError } = await supabase
                 .from('users')
                 .insert([
                     {
@@ -96,10 +135,12 @@ async function initializeDatabase() {
                         password: hashedPassword,
                         role: 'admin'
                     }
-                ]);
+                ])
+                .select()
+                .single();
             
-            if (error) {
-                console.error('Error creating admin:', error);
+            if (insertError) {
+                console.error('Error creating admin:', insertError);
             } else {
                 console.log(`✅ Admin user created: ${ADMIN_USERNAME}`);
             }
@@ -123,6 +164,7 @@ const authenticateToken = (req, res, next) => {
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
+            console.error('Token verification failed:', err.message);
             return res.status(403).json({ message: 'Invalid or expired token' });
         }
         req.user = user;
@@ -137,21 +179,40 @@ app.get('/', (req, res) => {
     res.json({ 
         message: 'Server is running successfully!',
         timestamp: new Date().toISOString(),
-        database: 'Supabase'
+        database: 'Supabase',
+        port: PORT
     });
 });
 
-app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'OK', 
-        timestamp: new Date().toISOString(),
-        database: 'Supabase Connected'
-    });
+app.get('/health', async (req, res) => {
+    try {
+        // Test database connection
+        const { data, error } = await supabase
+            .from('users')
+            .select('count')
+            .limit(1);
+        
+        res.json({ 
+            status: 'OK', 
+            timestamp: new Date().toISOString(),
+            database: error ? 'Supabase Connection Failed' : 'Supabase Connected',
+            port: PORT
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'ERROR', 
+            timestamp: new Date().toISOString(),
+            database: 'Supabase Connection Failed',
+            error: error.message
+        });
+    }
 });
 
 // Authentication Routes
 app.post('/api/auth/login', async (req, res) => {
     try {
+        console.log('Login attempt:', { username: req.body.username });
+        
         const { username, password } = req.body;
 
         if (!username || !password) {
@@ -165,7 +226,15 @@ app.post('/api/auth/login', async (req, res) => {
             .eq('username', username)
             .single();
 
-        if (error || !user) {
+        if (error) {
+            console.error('Database error during login:', error);
+            if (error.code === 'PGRST116') {
+                return res.status(401).json({ message: 'Invalid credentials' });
+            }
+            return res.status(500).json({ message: 'Database error' });
+        }
+
+        if (!user) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
@@ -180,6 +249,8 @@ app.post('/api/auth/login', async (req, res) => {
             JWT_SECRET,
             { expiresIn: '24h' }
         );
+
+        console.log('Login successful for user:', username);
 
         res.json({
             message: 'Login successful',
@@ -218,7 +289,8 @@ app.get('/api/products', async (req, res) => {
             .order('created_at', { ascending: false });
 
         if (error) {
-            throw error;
+            console.error('Get products error:', error);
+            return res.status(500).json({ message: 'Failed to fetch products' });
         }
 
         res.json(products || []);
@@ -274,7 +346,8 @@ app.post('/api/products', authenticateToken, upload.single('image'), async (req,
             .single();
 
         if (error) {
-            throw error;
+            console.error('Add product error:', error);
+            return res.status(500).json({ message: 'Failed to add product' });
         }
 
         res.status(201).json({
@@ -345,7 +418,8 @@ app.patch('/api/products/:id/toggle', authenticateToken, async (req, res) => {
             .single();
 
         if (updateError) {
-            throw updateError;
+            console.error('Toggle product error:', updateError);
+            return res.status(500).json({ message: 'Failed to update product status' });
         }
 
         res.json({
@@ -375,7 +449,8 @@ app.delete('/api/products/:id', authenticateToken, async (req, res) => {
             .eq('id', req.params.id);
 
         if (error) {
-            throw error;
+            console.error('Delete product error:', error);
+            return res.status(500).json({ message: 'Failed to delete product' });
         }
 
         // Delete associated image file if it exists
@@ -405,7 +480,8 @@ app.get('/api/products/search/:query', async (req, res) => {
             .order('created_at', { ascending: false });
 
         if (error) {
-            throw error;
+            console.error('Search products error:', error);
+            return res.status(500).json({ message: 'Failed to search products' });
         }
 
         res.json(products || []);
@@ -417,6 +493,8 @@ app.get('/api/products/search/:query', async (req, res) => {
 
 // Error handling middleware
 app.use((error, req, res, next) => {
+    console.error('Error middleware caught:', error);
+    
     if (error instanceof multer.MulterError) {
         if (error.code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({ message: 'File too large. Maximum size is 5MB.' });
@@ -433,22 +511,30 @@ app.use((error, req, res, next) => {
 
 // 404 handler
 app.use('*', (req, res) => {
+    console.log('404 - Route not found:', req.method, req.originalUrl);
     res.status(404).json({ message: 'Route not found' });
 });
 
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully');
+    process.exit(0);
+});
+
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🗄️ Database: Supabase`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
     
     // Initialize database after server starts
-    setTimeout(initializeDatabase, 1000);
+    setTimeout(initializeDatabase, 2000);
 });
 
-
 module.exports = app;
-
-
-
-
