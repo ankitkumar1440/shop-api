@@ -32,7 +32,7 @@ const corsOptions = {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 };
-
+const authRoutes = require('./routes/auth');
 app.use(express.static('public')); // or wherever your HTML files are
 app.use('/api/auth', authRoutes); // Your API routes
 
@@ -505,6 +505,7 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
+
 
 
 
