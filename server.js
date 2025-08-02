@@ -16,11 +16,11 @@ const PORT = process.env.PORT || 3000;
 // Debug environment variables
 console.log('=== ENVIRONMENT VARIABLES DEBUG ===');
 console.log('PORT:', PORT);
-console.log('ADMIN_USERNAME:', process.env.ADMIN_USERNAME);
-console.log('ADMIN_PASSWORD:', process.env.ADMIN_PASSWORD ? '***SET***' : 'NOT SET');
-console.log('JWT_SECRET:', process.env.JWT_SECRET ? '***SET***' : 'NOT SET');
-console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
-console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '***SET***' : 'NOT SET');
+console.log('ADMIN_USERNAME:', process.env.ADMIN_USERNAME;
+console.log('ADMIN_PASSWORD:', process.env.ADMIN_PASSWORD;
+console.log('JWT_SECRET:', process.env.JWT_SECRET;
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL;
+console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY;
 console.log('================================');
 
 // Fixed CORS configuration
@@ -514,4 +514,5 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
+
 
