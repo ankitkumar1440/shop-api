@@ -15,7 +15,6 @@ const PORT = process.env.PORT;
 
 const corsOptions = {
     origin: [
-        'https://localhost:5000',
         'https://13.228.225.19',
         'https://54.254.162.138',
         ],
@@ -42,11 +41,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Serve the login page
 app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Serve the main page
-app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -466,5 +460,6 @@ app.listen(PORT, () => {
 
 
 module.exports = app;
+
 
 
