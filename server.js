@@ -15,9 +15,11 @@ const PORT = process.env.PORT;
 
 const corsOptions = {
     origin: [
+        'https://amul-arwal.web.app',
+        'https://amul-arwal.firebaseapp.com',
         'https://13.228.225.19',
         'https://54.254.162.138',
-        ],
+    ],
     credentials: true,
 };
 
@@ -445,6 +447,7 @@ app.listen(PORT, () => {
 
 
 module.exports = app;
+
 
 
 
