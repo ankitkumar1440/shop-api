@@ -1,0 +1,47 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "destination": "https://shop-api-x8xu.onrender.com/api/**"
+      },
+      {
+        "source": "/uploads/**",
+        "destination": "https://shop-api-x8xu.onrender.com/uploads/**"
+      },
+      {
+        "source": "/health",
+        "destination": "https://shop-api-x8xu.onrender.com/health"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          },
+          {
+            "key": "Access-Control-Allow-Methods",
+            "value": "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+          },
+          {
+            "key": "Access-Control-Allow-Headers",
+            "value": "Content-Type,Authorization"
+          }
+        ]
+      }
+    ]
+  }
+}
