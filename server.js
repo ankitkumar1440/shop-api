@@ -13,6 +13,15 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT;
 
+const corsOptions = {
+    origin: [
+        'https://localhost:5000',
+        'https://13.228.225.19',
+        'https://54.254.162.138',
+        ],
+    credentials: true,
+};
+
 // Supabase configuration
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
@@ -431,5 +440,6 @@ app.listen(PORT, () => {
     // Initialize database after server starts
     setTimeout(initializeDatabase, 1000);
 });
+
 
 module.exports = app;
