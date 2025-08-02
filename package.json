@@ -1,4 +1,14 @@
 {
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+
+
+{
     "name": "product-management-backend",
     "version": "1.0.0",
     "description": "Product management system backend API with Supabase",
@@ -31,4 +41,56 @@
     ],
     "author": "Ankit",
     "license": "MIT"
+
   }
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "destination": "https://your-app-name.onrender.com/api/**"
+      },
+      {
+        "source": "/uploads/**",
+        "destination": "https://your-app-name.onrender.com/uploads/**"
+      },
+      {
+        "source": "/health",
+        "destination": "https://your-app-name.onrender.com/health"
+      },
+      {
+        "source": "/login",
+        "destination": "/login.html"
+      },
+      {
+        "source": "/dashboard",
+        "destination": "/dashboard.html"
+      },
+      {
+        "source": "/admin",
+        "destination": "/admin.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          },
+          {
+            "key": "Access-Control-Allow-Methods",
+            "value": "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+          },
+          {
+            "key": "Access-Control-Allow-Headers",
+            "value": "Content-Type,Authorization"
+          }
+        ]
+      }
+    ]
+}
+}
