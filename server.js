@@ -22,6 +22,9 @@ const corsOptions = {
     credentials: true,
 };
 
+app.use(cors(corsOptions));
+app.use(express.json());
+
 // Supabase configuration
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
@@ -443,3 +446,4 @@ app.listen(PORT, () => {
 
 
 module.exports = app;
+
