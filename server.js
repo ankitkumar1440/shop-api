@@ -42,6 +42,9 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 };
 
+app.use(express.static('public')); // or wherever your HTML files are
+app.use('/api/auth', authRoutes); // Your API routes
+
 // Apply CORS - ONLY ONCE
 app.use(cors(corsOptions));
 
@@ -511,3 +514,4 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
+
